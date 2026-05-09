@@ -1,70 +1,108 @@
-# Getting Started with Create React App
+# teraid-pay-user
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+Teraid Pay のユーザー向けウォレット登録プロトタイプです。
 
-## Available Scripts
+ウォレット接続、署名によるウォレット登録、登録済みウォレットの表示、JPYC 残高表示、approve、削除を行います。API 側のプロトタイプ制約により、User ID は `104` に固定しています。
 
-In the project directory, you can run:
+## Requirements
 
-### `yarn start`
+- Node.js
+- Yarn
+- ブラウザウォレット（MetaMask などの `window.ethereum` 対応ウォレット）
+- Teraid Pay API
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+API 側のプロトタイプは以下のリポジトリにあります。
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+```text
+https://github.com/terao06/teraid-pay-api
+```
 
-### `yarn test`
+## Setup
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+依存関係をインストールします。
 
-### `yarn build`
+```bash
+yarn install
+```
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+開発用の環境変数ファイルを作成します。
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+```bash
+copy .env.example .env.development
+```
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+`.env.development` の値を必要に応じて変更してください。
 
-### `yarn eject`
+## Environment Variables
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
+CRA ではブラウザ側に渡す環境変数名を `REACT_APP_` で始める必要があります。
 
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
+```env
+REACT_APP_TERAID_PAY_API=http://localhost:8005
 
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
+REACT_APP_WALLET_CONNECT_PROJECT_ID=your_wallet_connect_project_id
 
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
+REACT_APP_RPC_URL_ETHEREUM_MAINNET=https://ethereum-rpc.publicnode.com
+REACT_APP_RPC_URL_ETHEREUM_SEPOLIA=https://ethereum-sepolia-rpc.publicnode.com
+REACT_APP_RPC_URL_POLYGON_MAINNET=https://polygon-bor-rpc.publicnode.com
+REACT_APP_RPC_URL_POLYGON_AMOY=https://polygon-amoy-bor-rpc.publicnode.com
 
-## Learn More
+REACT_APP_JPYC_TOKEN_ADDRESS_ETHEREUM_MAINNET=
+REACT_APP_JPYC_TOKEN_ADDRESS_ETHEREUM_SEPOLIA=0xE7C3D8C9a439feDe00D2600032D5dB0Be71C3c29
+REACT_APP_JPYC_TOKEN_ADDRESS_POLYGON_MAINNET=
+REACT_APP_JPYC_TOKEN_ADDRESS_POLYGON_AMOY=
+```
 
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
+`REACT_APP_TERAID_PAY_API` は Pay API のベース URL です。未設定の場合はアプリ側で `http://localhost:8005` を使います。
 
-To learn React, check out the [React documentation](https://reactjs.org/).
+`REACT_APP_WALLET_CONNECT_PROJECT_ID` は WalletConnect を使う場合の Project ID です。公式の WalletConnect Dashboard で作成します。
 
-### Code Splitting
+1. https://dashboard.walletconnect.com にアクセスします。
+2. アカウントを作成、またはログインします。
+3. Projects から新しいプロジェクトを作成します。
+4. 作成された Project ID をコピーし、`.env.development` の `REACT_APP_WALLET_CONNECT_PROJECT_ID` に設定します。
+5. Project ID はブラウザに公開される値なので、Dashboard 側で `localhost:3000` や本番ドメインを allowlist に設定してください。
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
+現在の実装は CRA との互換性を優先して wagmi の `injected()` connector を使っています。そのため MetaMask などのブラウザ拡張ウォレット接続では Project ID は使用しません。WalletConnect QR / mobile wallet 接続を追加する場合に必要になります。
 
-### Analyzing the Bundle Size
+## Development
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
+開発サーバーを起動します。
 
-### Making a Progressive Web App
+```bash
+yarn start
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
+ブラウザで以下を開きます。
 
-### Advanced Configuration
+```text
+http://localhost:3000
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
+`.env.development` を変更した場合は、開発サーバーを再起動してください。
 
-### Deployment
+## Build
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
+本番ビルドを作成します。
 
-### `yarn build` fails to minify
+```bash
+yarn build
+```
 
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+CRA と wagmi の依存関係により、ビルド時に `@metamask/sdk` の optional import に関する警告が出る場合があります。現在の実装は RainbowKit / Metamask SDK 経由ではなく wagmi の `injected()` connector を使うため、アプリの実行経路ではこの警告対象を直接使用していません。
+
+## Wallet Flow
+
+1. 起動時に `GET /user/104/wallet` で登録済みウォレットを取得します。
+2. 未登録の場合、登録ボタンからウォレットを接続します。
+3. ネットワークを選択します。
+4. `POST /user/104/wallet/nonce` で nonce を発行します。
+5. 接続ウォレットで nonce に署名します。
+6. `POST /user/104/wallet` へ署名とネットワーク情報を送信して登録します。
+7. 登録済みウォレットでは JPYC 残高確認、approve、削除ができます。
+
+## Notes
+
+- User ID は API 側のプロトタイプに合わせて `104` 固定です。
+- `.env.development` は開発者ごとのローカル設定として扱います。
+- `.env.example` は共有用テンプレートです。

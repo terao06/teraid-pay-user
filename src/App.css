@@ -1,38 +1,33 @@
-.App {
-  text-align: center;
-}
-
-.App-logo {
-  height: 40vmin;
-  pointer-events: none;
-}
-
-@media (prefers-reduced-motion: no-preference) {
-  .App-logo {
-    animation: App-logo-spin infinite 20s linear;
-  }
-}
-
-.App-header {
-  background-color: #282c34;
+.wallet-page {
   min-height: 100vh;
-  display: flex;
-  flex-direction: column;
+  padding: 40px 0;
+  background:
+    linear-gradient(180deg, rgba(37, 111, 103, 0.08), rgba(244, 247, 246, 0) 260px),
+    #f4f7f6;
+}
+
+.wallet-header {
+  align-items: stretch;
+  justify-content: space-between;
+}
+
+.wallet-section-title {
   align-items: center;
-  justify-content: center;
-  font-size: calc(10px + 2vmin);
-  color: white;
+  justify-content: space-between;
+  padding: 8px 0;
 }
 
-.App-link {
-  color: #61dafb;
+.balance-panel {
+  max-width: 520px;
+  padding: 14px 16px;
+  border: 1px solid rgba(37, 111, 103, 0.28);
+  border-radius: 8px;
+  background: linear-gradient(140deg, rgba(37, 111, 103, 0.12), rgba(154, 52, 18, 0.08));
 }
 
-@keyframes App-logo-spin {
-  from {
-    transform: rotate(0deg);
+@media (max-width: 600px) {
+  .wallet-page {
+    padding: 24px 0;
   }
-  to {
-    transform: rotate(360deg);
-  }
+
 }
