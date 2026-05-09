@@ -20,8 +20,8 @@
     "web-vitals": "^2.1.0"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "cross-env GENERATE_SOURCEMAP=false react-scripts build",
+    "start": "node scripts/start.js",
+    "build": "node scripts/build.js",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },

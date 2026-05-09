@@ -606,6 +606,9 @@ function BalancePanel({ balanceText }) {
         <Typography variant="h5" sx={{ fontWeight: 800, fontFamily: "monospace", overflowWrap: "anywhere" }}>
           {balanceText}
         </Typography>
+        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>
+          1 JPYC = 1 円
+        </Typography>
       </Stack>
     </Box>
   );
