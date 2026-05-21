@@ -1,4 +1,3 @@
-import { useEffect, useRef } from "react";
 import CheckCircleRoundedIcon from "@mui/icons-material/CheckCircleRounded";
 import {
   Alert,
@@ -17,9 +16,6 @@ import { useAccount, useConnect, useDisconnect } from "wagmi";
 
 import { walletNetworkOptions } from "./walletNetworks";
 
-const DEFAULT_CHAIN_TYPE = "";
-const DEFAULT_NETWORK_NAME = "";
-
 export default function WalletRegisterDialog({
   open,
   chainType,
@@ -31,20 +27,10 @@ export default function WalletRegisterDialog({
   onNetworkNameChange,
   onRegisterWallet,
 }) {
-  const wasOpenRef = useRef(open);
   const { address, chain, isConnected } = useAccount();
   const { connectors, connect, isPending } = useConnect();
   const { disconnect } = useDisconnect();
   const connector = connectors[0];
-
-  useEffect(() => {
-    if (open && !wasOpenRef.current) {
-      onChainTypeChange(DEFAULT_CHAIN_TYPE);
-      onNetworkNameChange(DEFAULT_NETWORK_NAME);
-    }
-
-    wasOpenRef.current = open;
-  }, [open, onChainTypeChange, onNetworkNameChange]);
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">

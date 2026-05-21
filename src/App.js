@@ -1,34 +1,19 @@
-import AccountBalanceWalletRoundedIcon from "@mui/icons-material/AccountBalanceWalletRounded";
-import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
 import {
   Alert,
   Backdrop,
   Box,
-  Button,
-  Chip,
   CircularProgress,
   Container,
   CssBaseline,
-  Dialog,
-  DialogActions,
-  DialogContent,
-  DialogTitle,
-  Divider,
-  IconButton,
-  Paper,
-  Snackbar,
   Stack,
   ThemeProvider,
-  Tooltip,
-  Typography,
   createTheme,
 } from "@mui/material";
 import { waitForTransactionReceipt } from "@wagmi/core";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { erc20Abi, isAddress, maxUint256 } from "viem";
 import {
   useAccount,
-  useBalance,
   useDisconnect,
   useSignMessage,
   useSwitchChain,
@@ -36,15 +21,24 @@ import {
 } from "wagmi";
 
 import "./App.css";
+import AppSnackbar from "./components/AppSnackbar";
+import DeleteWalletDialog from "./components/DeleteWalletDialog";
+import WalletDetailCard from "./components/WalletDetailCard";
+import WalletPageHeader from "./components/WalletPageHeader";
+import { DEFAULT_WALLET_NETWORK, USER_ID } from "./config/appConfig";
+import {
+  deleteWallet,
+  fetchWallet,
+  fetchWalletApproval,
+  issueWalletNonce,
+  markWalletApproved,
+  registerWallet,
+} from "./clients/walletClient";
+import { useWalletBalance } from "./hooks/useWalletBalance";
 import WalletRegisterDialog from "./WalletRegisterDialog";
 import { Web3Providers } from "./Web3Providers";
 import { wagmiConfig } from "./wagmiConfig";
 import { findWalletNetworkOption } from "./walletNetworks";
-
-const USER_ID = 104;
-const DEFAULT_CHAIN_TYPE = "ethereum";
-const DEFAULT_NETWORK_NAME = "sepolia";
-const API_URL = (process.env.REACT_APP_TERAID_PAY_API || "http://localhost:8005").replace(/\/$/, "");
 
 const theme = createTheme({
   palette: {
@@ -85,8 +79,8 @@ function WalletDetailContent() {
   const { writeContractAsync } = useWriteContract();
   const { disconnect } = useDisconnect();
 
-  const [chainType, setChainType] = useState(DEFAULT_CHAIN_TYPE);
-  const [networkName, setNetworkName] = useState(DEFAULT_NETWORK_NAME);
+  const [chainType, setChainType] = useState(DEFAULT_WALLET_NETWORK.chainType);
+  const [networkName, setNetworkName] = useState(DEFAULT_WALLET_NETWORK.networkName);
   const [currentWallet, setCurrentWallet] = useState(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
@@ -101,75 +95,24 @@ function WalletDetailContent() {
     message: "",
   });
 
-  const chainId = currentWallet
-    ? findWalletNetworkOption(currentWallet.chain_type, currentWallet.network_name)?.chainId
-    : undefined;
-  const jpycTokenAddress = currentWallet
-    ? resolveJpycTokenAddress(currentWallet.chain_type, currentWallet.network_name)
-    : undefined;
-  const rpcUrl = currentWallet
-    ? resolveRpcUrl(currentWallet.chain_type, currentWallet.network_name)
-    : undefined;
-  const walletAddressForBalance =
-    currentWallet && isAddress(currentWallet.wallet_address) ? currentWallet.wallet_address : undefined;
-  const jpycTokenContractAddress =
-    jpycTokenAddress && isAddress(jpycTokenAddress) ? jpycTokenAddress : undefined;
-  const canReadBalance = Boolean(
-    currentWallet && chainId && rpcUrl && walletAddressForBalance && jpycTokenContractAddress,
-  );
-  const {
-    data: balance,
-    isFetching: isBalanceFetching,
-    error: balanceError,
-    refetch: refetchBalance,
-  } = useBalance({
-    address: canReadBalance ? walletAddressForBalance : undefined,
-    chainId,
-    token: canReadBalance ? jpycTokenContractAddress : undefined,
-    query: {
-      enabled: canReadBalance,
-    },
-  });
+  const { balanceText, refetchBalance } = useWalletBalance(currentWallet);
 
   const actionDisabled = isRegistering || isDeleting || isRefreshing || isApproving;
   const isBusy = isLoadingWallet || actionDisabled;
-
-  const balanceText = useMemo(() => {
-    if (!currentWallet) return "--";
-    if (!chainId) return "未対応ネットワーク";
-    if (!jpycTokenAddress) return "JPYCトークン未設定";
-    if (!rpcUrl) return "RPCエンドポイント未設定";
-    if (!isAddress(jpycTokenAddress) || !isAddress(currentWallet.wallet_address)) return "アドレス設定エラー";
-    if (isBalanceFetching) return "取得中...";
-    if (balanceError) return "取得失敗";
-    if (!balance) return "--";
-    return `${formatBalanceAmount(balance.formatted)} ${balance.symbol || "JPYC"}`;
-  }, [balance, balanceError, chainId, currentWallet, isBalanceFetching, jpycTokenAddress, rpcUrl]);
 
   const showToast = (severity, message) => {
     setToastState({ open: true, severity, message });
   };
 
   const resetDialogForm = () => {
-    setChainType(DEFAULT_CHAIN_TYPE);
-    setNetworkName(DEFAULT_NETWORK_NAME);
+    setChainType(DEFAULT_WALLET_NETWORK.chainType);
+    setNetworkName(DEFAULT_WALLET_NETWORK.networkName);
   };
 
   const loadWallet = async () => {
     try {
       setIsLoadingWallet(true);
-      const response = await fetch(`${API_URL}/user/${USER_ID}/wallet`);
-      const responseJson = await readJson(response);
-
-      if (!response.ok) {
-        throw new Error(extractErrorMessage(responseJson, response.status));
-      }
-
-      if (!responseJson || responseJson.status !== "success") {
-        throw new Error("ウォレット情報の取得に失敗しました。");
-      }
-
-      setCurrentWallet(responseJson.data);
+      setCurrentWallet(await fetchWallet());
     } catch (error) {
       setCurrentWallet(null);
       showToast("error", error instanceof Error ? error.message : "ウォレット情報の取得に失敗しました。");
@@ -199,18 +142,7 @@ function WalletDetailContent() {
   };
 
   const loadWalletApproval = async () => {
-    const approvalResponse = await fetch(`${API_URL}/user/${USER_ID}/wallet/approval`);
-    const approvalJson = await readJson(approvalResponse);
-
-    if (!approvalResponse.ok) {
-      throw new Error(extractErrorMessage(approvalJson, approvalResponse.status));
-    }
-
-    if (!approvalJson || approvalJson.status !== "success") {
-      throw new Error("approve 情報の取得に失敗しました。");
-    }
-
-    const approval = approvalJson.data;
+    const approval = await fetchWalletApproval();
     if (
       !isAddress(approval.wallet_address) ||
       !isAddress(approval.token_contract_address) ||
@@ -275,48 +207,14 @@ function WalletDetailContent() {
     try {
       setIsRegistering(true);
 
-      const nonceResponse = await fetch(`${API_URL}/user/${USER_ID}/wallet/nonce`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          wallet_address: normalizedAddress,
-          chain_type: selectedNetwork.chainType,
-          network_name: selectedNetwork.networkName,
-        }),
+      const nonce = await issueWalletNonce({
+        walletAddress: normalizedAddress,
+        chainType: selectedNetwork.chainType,
+        networkName: selectedNetwork.networkName,
       });
-      const nonceJson = await readJson(nonceResponse);
 
-      if (!nonceResponse.ok) {
-        throw new Error(extractErrorMessage(nonceJson, nonceResponse.status));
-      }
-
-      if (!nonceJson || nonceJson.status !== "success") {
-        throw new Error("nonce の発行に失敗しました。");
-      }
-
-      const signature = await signMessageAsync({ message: nonceJson.data.nonce });
-
-      const verifyResponse = await fetch(`${API_URL}/user/${USER_ID}/wallet`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          wallet_address: normalizedAddress,
-          signature,
-          chain_type: selectedNetwork.chainType,
-          network_name: selectedNetwork.networkName,
-          token_symbol: selectedNetwork.tokenSymbol,
-          chain_id: selectedNetwork.chainId,
-        }),
-      });
-      const verifyJson = await readJson(verifyResponse);
-
-      if (!verifyResponse.ok) {
-        throw new Error(extractErrorMessage(verifyJson, verifyResponse.status));
-      }
-
-      if (!verifyJson || verifyJson.status !== "success") {
-        throw new Error("ウォレット登録に失敗しました。");
-      }
+      const signature = await signMessageAsync({ message: nonce });
+      await registerWallet({ walletAddress: normalizedAddress, signature, network: selectedNetwork });
 
       showToast("success", "ウォレットを登録しました。");
       setIsDialogOpen(false);
@@ -340,14 +238,7 @@ function WalletDetailContent() {
         await writeWalletApprovalAmount(approval, 0n);
       }
 
-      const response = await fetch(`${API_URL}/user/${USER_ID}/wallet/${currentWallet.wallet_id}`, {
-        method: "DELETE",
-      });
-      const responseJson = await readJson(response);
-
-      if (!response.ok) {
-        throw new Error(extractErrorMessage(responseJson, response.status));
-      }
+      await deleteWallet(currentWallet.wallet_id);
 
       setCurrentWallet(null);
       showToast("success", "ウォレットを削除しました。");
@@ -378,18 +269,7 @@ function WalletDetailContent() {
       const approval = await loadWalletApproval();
       await writeWalletApprovalAmount(approval, maxUint256);
 
-      const stateResponse = await fetch(`${API_URL}/user/${USER_ID}/wallet/${currentWallet.wallet_id}/approval`, {
-        method: "POST",
-      });
-      const stateJson = await readJson(stateResponse);
-
-      if (!stateResponse.ok) {
-        throw new Error(extractErrorMessage(stateJson, stateResponse.status));
-      }
-
-      if (!stateJson || stateJson.status !== "success") {
-        throw new Error("approve 状態の更新に失敗しました。");
-      }
+      await markWalletApproved(currentWallet.wallet_id);
 
       showToast("success", "ウォレットを承認しました。");
       await loadWallet();
@@ -410,121 +290,35 @@ function WalletDetailContent() {
     <Box className="wallet-page">
       <Container maxWidth="lg">
         <Stack spacing={3}>
-          <Stack direction={{ xs: "column", md: "row" }} spacing={2} className="wallet-header">
-            <Box>
-              <Typography variant="h4" sx={{ fontWeight: 800 }}>
-                ウォレット詳細
-              </Typography>
-              <Typography variant="body2" color="text.secondary">
-                User ID {USER_ID}
-              </Typography>
-            </Box>
-            <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
-              {currentWallet ? (
-                <Button onClick={() => setIsDeleteDialogOpen(true)} variant="outlined" color="error" disabled={actionDisabled}>
-                  削除
-                </Button>
-              ) : null}
-              {!currentWallet && !isLoadingWallet ? (
-                <Button
-                  variant="outlined"
-                  startIcon={<AccountBalanceWalletRoundedIcon />}
-                  onClick={openRegisterDialog}
-                  disabled={actionDisabled}
-                >
-                  登録
-                </Button>
-              ) : null}
-            </Stack>
-          </Stack>
+          <WalletPageHeader
+            userId={USER_ID}
+            hasWallet={Boolean(currentWallet)}
+            isLoadingWallet={isLoadingWallet}
+            actionDisabled={actionDisabled}
+            onDeleteWallet={() => setIsDeleteDialogOpen(true)}
+            onOpenRegisterDialog={openRegisterDialog}
+          />
 
           {currentWallet === null ? (
             <Alert severity="info" variant="outlined">
               登録済みのウォレットはまだありません。
             </Alert>
           ) : (
-            <Paper variant="outlined" sx={{ borderRadius: 2, px: 3, py: 1 }}>
-              <Stack direction="row" className="wallet-section-title">
-                <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>
-                  ウォレット
-                </Typography>
-                <Tooltip title="再読み込み">
-                  <span>
-                    <IconButton
-                      aria-label="再読み込み"
-                      onClick={refreshWallet}
-                      disabled={actionDisabled || isLoadingWallet}
-                      size="small"
-                    >
-                      <RefreshRoundedIcon fontSize="small" />
-                    </IconButton>
-                  </span>
-                </Tooltip>
-              </Stack>
-              <Divider />
-              <DetailRow label="Wallet ID" value={<Typography variant="body2">#{currentWallet.wallet_id}</Typography>} />
-              <Divider />
-              <DetailRow
-                label="Wallet Address"
-                value={
-                  <Typography variant="body2" sx={{ fontFamily: "monospace", wordBreak: "break-all" }}>
-                    {currentWallet.wallet_address}
-                  </Typography>
-                }
-              />
-              <Divider />
-              <DetailRow label="Chain Type" value={<Typography variant="body2">{currentWallet.chain_type}</Typography>} />
-              <Divider />
-              <DetailRow label="Network" value={<Typography variant="body2">{currentWallet.network_name}</Typography>} />
-              <Divider />
-              <DetailRow label="Token" value={<Typography variant="body2">{currentWallet.token_symbol}</Typography>} />
-              <Divider />
-              <DetailRow label="Chain ID" value={<Typography variant="body2">{currentWallet.chain_id}</Typography>} />
-              <Divider />
-              <DetailRow label="JPYC Balance" value={<BalancePanel balanceText={balanceText} />} />
-              <Divider />
-              <DetailRow
-                label="Status"
-                value={
-                  <Chip
-                    size="small"
-                    label={currentWallet.is_active ? "有効" : "無効"}
-                    color={currentWallet.is_active ? "success" : "warning"}
-                  />
-                }
-              />
-              <Divider />
-              <DetailRow
-                label="Approval"
-                value={
-                  <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ alignItems: { xs: "flex-start", sm: "center" } }}>
-                    <Chip
-                      size="small"
-                      label={currentWallet.is_approval ? "承認済み" : "未承認"}
-                      color={currentWallet.is_approval ? "success" : "warning"}
-                    />
-                    {!currentWallet.is_approval ? (
-                      <Button onClick={handleApproveWallet} variant="contained" size="small" disabled={actionDisabled}>
-                        {isApproving ? "承認中..." : "承認"}
-                      </Button>
-                    ) : null}
-                  </Stack>
-                }
-              />
-              <Divider />
-              <DetailRow label="Verified At" value={<Typography variant="body2">{formatDateTime(currentWallet.verified_at, "未認証")}</Typography>} />
-              <Divider />
-              <DetailRow label="Created At" value={<Typography variant="body2">{formatDateTime(currentWallet.created_at, "--")}</Typography>} />
-              <Divider />
-              <DetailRow label="Updated At" value={<Typography variant="body2">{formatDateTime(currentWallet.updated_at, "--")}</Typography>} />
-            </Paper>
+            <WalletDetailCard
+              wallet={currentWallet}
+              balanceText={balanceText}
+              actionDisabled={actionDisabled}
+              isLoadingWallet={isLoadingWallet}
+              isApproving={isApproving}
+              onRefreshWallet={refreshWallet}
+              onApproveWallet={handleApproveWallet}
+            />
           )}
         </Stack>
       </Container>
 
       <WalletRegisterDialog
         open={isDialogOpen}
-        connectedAddress={connectedAddress || ""}
         chainType={chainType}
         networkName={networkName}
         isRegistering={isRegistering}
@@ -535,146 +329,24 @@ function WalletDetailContent() {
         onRegisterWallet={handleRegisterWallet}
       />
 
-      <Snackbar
-        open={toastState.open}
-        autoHideDuration={4000}
+      <AppSnackbar
+        toastState={toastState}
         onClose={() => setToastState((current) => ({ ...current, open: false }))}
-        anchorOrigin={{ vertical: "top", horizontal: "center" }}
-      >
-        <Alert
-          severity={toastState.severity}
-          variant="filled"
-          onClose={() => setToastState((current) => ({ ...current, open: false }))}
-          sx={{ width: "100%" }}
-        >
-          {toastState.message}
-        </Alert>
-      </Snackbar>
+      />
 
-      <Dialog open={isDeleteDialogOpen} onClose={() => !isDeleting && setIsDeleteDialogOpen(false)} fullWidth maxWidth="xs">
-        <DialogTitle>ウォレットを削除しますか？</DialogTitle>
-        <DialogContent>
-          <Stack spacing={1.5}>
-            <Typography variant="body2" color="text.secondary">
-              削除後は登録情報が画面から消えます。必要な場合は再度ウォレット登録を行ってください。
-            </Typography>
-            {currentWallet ? (
-              <Typography variant="body2" sx={{ fontFamily: "monospace", wordBreak: "break-all" }}>
-                {currentWallet.wallet_address}
-              </Typography>
-            ) : null}
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setIsDeleteDialogOpen(false)} disabled={isDeleting}>
-            キャンセル
-          </Button>
-          <Button onClick={handleDeleteWallet} color="error" variant="contained" disabled={isDeleting || !currentWallet}>
-            {isDeleting ? "削除中..." : "削除する"}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      <DeleteWalletDialog
+        open={isDeleteDialogOpen}
+        wallet={currentWallet}
+        isDeleting={isDeleting}
+        onClose={() => setIsDeleteDialogOpen(false)}
+        onDeleteWallet={handleDeleteWallet}
+      />
 
       <Backdrop open={isBusy} sx={{ color: "#fff", zIndex: (muiTheme) => muiTheme.zIndex.modal + 1 }}>
         <CircularProgress color="inherit" />
       </Backdrop>
     </Box>
   );
-}
-
-function DetailRow({ label, value }) {
-  return (
-    <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ py: 1.5 }}>
-      <Typography variant="body2" color="text.secondary" sx={{ minWidth: 160, fontWeight: 500 }}>
-        {label}
-      </Typography>
-      <Box sx={{ flex: 1 }}>{value}</Box>
-    </Stack>
-  );
-}
-
-function BalancePanel({ balanceText }) {
-  return (
-    <Box className="balance-panel">
-      <Stack spacing={0.8}>
-        <Stack direction="row" sx={{ justifyContent: "space-between", alignItems: "center" }}>
-          <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>
-            残高
-          </Typography>
-          <Chip size="small" label="JPYC" color="primary" sx={{ fontWeight: 700 }} />
-        </Stack>
-        <Typography variant="h5" sx={{ fontWeight: 800, fontFamily: "monospace", overflowWrap: "anywhere" }}>
-          {balanceText}
-        </Typography>
-        <Typography variant="caption" color="text.secondary" sx={{ fontWeight: 700 }}>
-          1 JPYC = 1 円
-        </Typography>
-      </Stack>
-    </Box>
-  );
-}
-
-async function readJson(response) {
-  const text = await response.text();
-  if (!text) return null;
-
-  try {
-    return JSON.parse(text);
-  } catch {
-    return null;
-  }
-}
-
-function extractErrorMessage(responseJson, status) {
-  if (
-    responseJson &&
-    typeof responseJson === "object" &&
-    responseJson.detail &&
-    typeof responseJson.detail === "object" &&
-    typeof responseJson.detail.message === "string"
-  ) {
-    return responseJson.detail.message;
-  }
-
-  return `API request failed. HTTP ${status}`;
-}
-
-function formatDateTime(value, fallback) {
-  if (!value) return fallback;
-
-  const date = new Date(value);
-  if (Number.isNaN(date.getTime())) return value;
-
-  return new Intl.DateTimeFormat("ja-JP", {
-    dateStyle: "medium",
-    timeStyle: "short",
-  }).format(date);
-}
-
-function formatBalanceAmount(value) {
-  const [integerPart, decimalPart] = value.split(".");
-  const groupedInteger = integerPart.replace(/\B(?=(\d{3})+(?!\d))/g, ",");
-
-  if (!decimalPart) return groupedInteger;
-
-  const trimmedDecimal = decimalPart.replace(/0+$/, "").slice(0, 4);
-  return trimmedDecimal ? `${groupedInteger}.${trimmedDecimal}` : groupedInteger;
-}
-
-function resolveJpycTokenAddress(chainType, networkName) {
-  if (chainType === "ethereum" && networkName === "mainnet") return process.env.REACT_APP_JPYC_TOKEN_ADDRESS_ETHEREUM_MAINNET;
-  if (chainType === "ethereum" && networkName === "sepolia") return process.env.REACT_APP_JPYC_TOKEN_ADDRESS_ETHEREUM_SEPOLIA;
-  if (chainType === "polygon" && networkName === "polygon") return process.env.REACT_APP_JPYC_TOKEN_ADDRESS_POLYGON_MAINNET;
-  if (chainType === "polygon" && networkName === "amoy") return process.env.REACT_APP_JPYC_TOKEN_ADDRESS_POLYGON_AMOY;
-  return undefined;
-}
-
-function resolveRpcUrl(chainType, networkName) {
-  if (chainType === "ethereum" && networkName === "mainnet") return process.env.REACT_APP_RPC_URL_ETHEREUM_MAINNET;
-  if (chainType === "ethereum" && networkName === "sepolia") return process.env.REACT_APP_RPC_URL_ETHEREUM_SEPOLIA;
-  if (chainType === "polygon" && networkName === "polygon") return process.env.REACT_APP_RPC_URL_POLYGON_MAINNET;
-  if (chainType === "polygon" && networkName === "amoy") return process.env.REACT_APP_RPC_URL_POLYGON_AMOY;
-  return undefined;
 }
 
 export default App;

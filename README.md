@@ -4,7 +4,7 @@ Teraid Pay のユーザー向けウォレット登録プロトタイプです。
 
 ウォレット接続、署名によるウォレット登録、登録済みウォレットの表示、JPYC 残高表示、approve、削除を行います。API 側のプロトタイプ制約により、User ID は `104` に固定しています。
 
-## Requirements
+## 必要なもの
 
 - Node.js
 - Yarn
@@ -17,7 +17,7 @@ API 側のプロトタイプは以下のリポジトリにあります。
 https://github.com/terao06/teraid-pay-api
 ```
 
-## Setup
+## セットアップ
 
 依存関係をインストールします。
 
@@ -33,7 +33,7 @@ copy .env.example .env.development
 
 `.env.development` の値を必要に応じて変更してください。
 
-## Environment Variables
+## 環境変数
 
 CRA ではブラウザ側に渡す環境変数名を `REACT_APP_` で始める必要があります。
 
@@ -65,7 +65,7 @@ REACT_APP_JPYC_TOKEN_ADDRESS_POLYGON_AMOY=
 
 現在の実装は CRA との互換性を優先して wagmi の `injected()` connector を使っています。そのため MetaMask などのブラウザ拡張ウォレット接続では Project ID は使用しません。WalletConnect QR / mobile wallet 接続を追加する場合に必要になります。
 
-## Development
+## 開発
 
 開発サーバーを起動します。
 
@@ -81,7 +81,7 @@ http://localhost:3000
 
 `.env.development` を変更した場合は、開発サーバーを再起動してください。
 
-## Build
+## ビルド
 
 本番ビルドを作成します。
 
@@ -91,7 +91,7 @@ yarn build
 
 CRA と wagmi の依存関係により、ビルド時に `@metamask/sdk` の optional import に関する警告が出る場合があります。現在の実装は RainbowKit / Metamask SDK 経由ではなく wagmi の `injected()` connector を使うため、アプリの実行経路ではこの警告対象を直接使用していません。
 
-## Wallet Flow
+## ウォレット登録フロー
 
 1. 起動時に `GET /user/104/wallet` で登録済みウォレットを取得します。
 2. 未登録の場合、登録ボタンからウォレットを接続します。
@@ -101,8 +101,19 @@ CRA と wagmi の依存関係により、ビルド時に `@metamask/sdk` の opt
 6. `POST /user/104/wallet` へ署名とネットワーク情報を送信して登録します。
 7. 登録済みウォレットでは JPYC 残高確認、approve、削除ができます。
 
-## Notes
+## 補足
 
 - User ID は API 側のプロトタイプに合わせて `104` 固定です。
 - `.env.development` は開発者ごとのローカル設定として扱います。
 - `.env.example` は共有用テンプレートです。
+
+## 画面サンプル
+### 初期画面
+![初期画面](docs/images/init_detail.png)
+
+### ウォレット登録画面
+![ウォレット登録画面](docs/images//register_dialog.png)
+
+### ウォレット登録後詳細画面
+![ウォレット登録後詳細画面](docs/images/registered_detail.png)
+※ 詳細画面承認ボタンより署名後ウォレット利用が可能なステータスになります。
