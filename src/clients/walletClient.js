@@ -77,9 +77,13 @@ export async function deleteWallet(walletId) {
   });
 }
 
-export async function markWalletApproved(walletId) {
+export async function markWalletApproved(walletId, txHash) {
   const responseJson = await requestJson(`/user/${USER_ID}/wallet/${walletId}/approval`, {
     method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      tx_hash: txHash,
+    }),
   });
 
   if (!responseJson || responseJson.status !== "success") {

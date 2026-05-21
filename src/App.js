@@ -183,6 +183,8 @@ function WalletDetailContent() {
     if (receipt.status !== "success") {
       throw new Error("approve トランザクションが失敗しました。");
     }
+
+    return hash;
   };
 
   const handleRegisterWallet = async () => {
@@ -267,9 +269,9 @@ function WalletDetailContent() {
       setIsApproving(true);
 
       const approval = await loadWalletApproval();
-      await writeWalletApprovalAmount(approval, maxUint256);
+      const approvalTxHash = await writeWalletApprovalAmount(approval, maxUint256);
 
-      await markWalletApproved(currentWallet.wallet_id);
+      await markWalletApproved(currentWallet.wallet_id, approvalTxHash);
 
       showToast("success", "ウォレットを承認しました。");
       await loadWallet();
