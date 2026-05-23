@@ -17,6 +17,36 @@
   padding: 8px 0;
 }
 
+.status-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 16px;
+}
+
+.status-card {
+  height: 100%;
+}
+
+.status-card .MuiCardContent-root {
+  min-height: 156px;
+}
+
+.status-card-title,
+.status-card-state {
+  align-items: center;
+}
+
+.status-card-icon {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  border: 1px solid rgba(37, 111, 103, 0.24);
+  border-radius: 8px;
+  background: rgba(37, 111, 103, 0.08);
+  color: #256f67;
+}
+
 .balance-panel {
   max-width: 520px;
   padding: 14px 16px;
@@ -25,9 +55,112 @@
   background: linear-gradient(140deg, rgba(37, 111, 103, 0.12), rgba(154, 52, 18, 0.08));
 }
 
+.face-camera-box {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid rgba(37, 111, 103, 0.24);
+  border-radius: 8px;
+  background: #111;
+}
+
+.face-camera-video {
+  display: block;
+  width: 100%;
+  max-height: 360px;
+  object-fit: contain;
+}
+
+.face-camera-capture {
+  position: absolute !important;
+  right: 12px;
+  bottom: 12px;
+}
+
+.face-crop-area {
+  position: relative;
+  display: flex;
+  min-height: 320px;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border: 1px dashed rgba(37, 111, 103, 0.42);
+  border-radius: 8px;
+  background: #eef4f2;
+  touch-action: none;
+  user-select: none;
+}
+
+.face-crop-frame {
+  position: relative;
+  display: inline-block;
+  line-height: 0;
+}
+
+.face-crop-image {
+  display: block;
+  max-width: 100%;
+  max-height: 520px;
+  object-fit: contain;
+}
+
+.face-crop-box {
+  position: absolute;
+  border: 2px solid #f9fafb;
+  box-shadow:
+    0 0 0 9999px rgba(0, 0, 0, 0.42),
+    0 0 0 1px rgba(37, 111, 103, 0.9);
+  cursor: move;
+  touch-action: none;
+}
+
+.face-crop-resize-handle {
+  position: absolute;
+  right: -7px;
+  bottom: -7px;
+  width: 16px;
+  height: 16px;
+  border: 2px solid #f9fafb;
+  border-radius: 50%;
+  background: #256f67;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.28);
+  cursor: nwse-resize;
+  touch-action: none;
+}
+
+.face-crop-placeholder {
+  align-items: center;
+  padding: 24px;
+  text-align: center;
+}
+
+.face-preview-box {
+  display: grid;
+  width: 112px;
+  height: 112px;
+  place-items: center;
+  overflow: hidden;
+  border: 1px solid rgba(37, 111, 103, 0.28);
+  border-radius: 8px;
+  background: #f8faf9;
+  color: rgba(0, 0, 0, 0.48);
+}
+
+.face-preview-box img {
+  display: block;
+  width: 112px;
+  height: 112px;
+}
+
 @media (max-width: 600px) {
   .wallet-page {
     padding: 24px 0;
   }
 
+  .status-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .face-crop-area {
+    min-height: 240px;
+  }
 }

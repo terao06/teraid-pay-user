@@ -1,4 +1,5 @@
 import AccountBalanceWalletRoundedIcon from "@mui/icons-material/AccountBalanceWalletRounded";
+import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
 import { Box, Button, Stack, Typography } from "@mui/material";
 
 export default function WalletPageHeader({
@@ -6,6 +7,7 @@ export default function WalletPageHeader({
   hasWallet,
   isLoadingWallet,
   actionDisabled,
+  onBackToUserInfo,
   onDeleteWallet,
   onOpenRegisterDialog,
 }) {
@@ -20,6 +22,9 @@ export default function WalletPageHeader({
         </Typography>
       </Box>
       <Stack direction={{ xs: "column", sm: "row" }} spacing={1.5}>
+        <Button variant="outlined" startIcon={<ArrowBackRoundedIcon />} onClick={onBackToUserInfo}>
+          ユーザー情報へ戻る
+        </Button>
         {hasWallet ? (
           <Button onClick={onDeleteWallet} variant="outlined" color="error" disabled={actionDisabled}>
             削除

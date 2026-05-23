@@ -109,11 +109,11 @@ CRA と wagmi の依存関係により、ビルド時に `@metamask/sdk` の opt
 
 ## 画面サンプル
 ### 初期画面
-![初期画面](docs/images/init_detail.png)
+![初期画面](images/init/init_image.png)
 
-### ウォレット登録画面
-![ウォレット登録画面](docs/images//register_dialog.png)
-
-### ウォレット登録後詳細画面
-![ウォレット登録後詳細画面](docs/images/registered_detail.png)  
+### ウォレット詳細画面
+![ウォレット詳細画面](images/wallet/detail_image.png)
 ※ 詳細画面承認ボタンより署名後ウォレット利用が可能なステータスになります。
+
+### 顔登録画面
+![顔登録画面](images/face/register_image.png)  

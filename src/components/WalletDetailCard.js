@@ -1,5 +1,5 @@
 import RefreshRoundedIcon from "@mui/icons-material/RefreshRounded";
-import { Button, Chip, Divider, IconButton, Paper, Stack, Tooltip, Typography } from "@mui/material";
+import { Alert, Button, Chip, Divider, IconButton, Paper, Stack, Tooltip, Typography } from "@mui/material";
 
 import BalancePanel from "./BalancePanel";
 import DetailRow from "./DetailRow";
@@ -34,6 +34,14 @@ export default function WalletDetailCard({
         </Tooltip>
       </Stack>
       <Divider />
+      {!wallet.is_approval ? (
+        <>
+          <Alert severity="warning" sx={{ my: 2 }}>
+            このウォレットは未承認です。利用するには承認を行ってください。
+          </Alert>
+          <Divider />
+        </>
+      ) : null}
       <DetailRow label="Wallet ID" value={<Typography variant="body2">#{wallet.wallet_id}</Typography>} />
       <Divider />
       <DetailRow

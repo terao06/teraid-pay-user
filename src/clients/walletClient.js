@@ -26,7 +26,7 @@ export async function fetchWalletApproval() {
   const responseJson = await requestJson(`/user/${USER_ID}/wallet/approval`);
 
   if (!responseJson || responseJson.status !== "success") {
-    throw new Error("approve 情報の取得に失敗しました。");
+    throw new Error("承認情報の取得に失敗しました。");
   }
 
   return responseJson.data;
@@ -44,7 +44,7 @@ export async function issueWalletNonce({ walletAddress, chainType, networkName }
   });
 
   if (!responseJson || responseJson.status !== "success") {
-    throw new Error("nonce の発行に失敗しました。");
+    throw new Error("署名用コードの発行に失敗しました。");
   }
 
   return responseJson.data.nonce;
@@ -87,7 +87,7 @@ export async function markWalletApproved(walletId, txHash) {
   });
 
   if (!responseJson || responseJson.status !== "success") {
-    throw new Error("approve 状態の更新に失敗しました。");
+    throw new Error("承認状態の更新に失敗しました。");
   }
 
   return responseJson.data;
