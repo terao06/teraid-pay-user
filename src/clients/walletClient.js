@@ -12,6 +12,10 @@ async function requestJson(path, options) {
   return responseJson;
 }
 
+function stringifyJsonBody(body) {
+  return JSON.stringify(body, (_key, value) => (typeof value === "bigint" ? value.toString() : value));
+}
+
 export async function fetchWallet() {
   const responseJson = await requestJson(`/user/${USER_ID}/wallet`);
 
@@ -77,12 +81,16 @@ export async function deleteWallet(walletId) {
   });
 }
 
-export async function markWalletApproved(walletId, txHash) {
+export async function markWalletApproved(walletId, permitSignature) {
   const responseJson = await requestJson(`/user/${USER_ID}/wallet/${walletId}/approval`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      tx_hash: txHash,
+    body: stringifyJsonBody({
+      allowance_value: permitSignature.allowanceValue,
+      signature_deadline: permitSignature.signatureDeadline,
+      signature_recovery_id: permitSignature.signatureRecoveryId,
+      signature_first_32_bytes: permitSignature.signatureFirst32Bytes,
+      signature_second_32_bytes: permitSignature.signatureSecond32Bytes,
     }),
   });
 
