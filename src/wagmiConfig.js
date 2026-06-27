@@ -1,14 +1,19 @@
 import { createConfig, http } from "wagmi";
-import { mainnet, polygon, polygonAmoy, sepolia } from "wagmi/chains";
+import { avalancheFuji, polygonAmoy, sepolia } from "wagmi/chains";
 import { injected } from "wagmi/connectors";
 
+const rpcUrls = {
+  ethereumSepolia: process.env.REACT_APP_RPC_URL_ETHEREUM_SEPOLIA || "https://ethereum-sepolia-rpc.publicnode.com",
+  avalancheFuji: process.env.REACT_APP_RPC_URL_AVALANCHE_FUJI || "https://avalanche-fuji-c-chain-rpc.publicnode.com",
+  polygonAmoy: process.env.REACT_APP_RPC_URL_POLYGON_AMOY || "https://rpc-amoy.polygon.technology",
+};
+
 export const wagmiConfig = createConfig({
-  chains: [polygon, polygonAmoy, sepolia, mainnet],
+  chains: [sepolia, avalancheFuji, polygonAmoy],
   connectors: [injected()],
   transports: {
-    [mainnet.id]: http(process.env.REACT_APP_RPC_URL_ETHEREUM_MAINNET),
-    [polygon.id]: http(process.env.REACT_APP_RPC_URL_POLYGON_MAINNET),
-    [polygonAmoy.id]: http(process.env.REACT_APP_RPC_URL_POLYGON_AMOY),
-    [sepolia.id]: http(process.env.REACT_APP_RPC_URL_ETHEREUM_SEPOLIA),
+    [sepolia.id]: http(rpcUrls.ethereumSepolia),
+    [avalancheFuji.id]: http(rpcUrls.avalancheFuji),
+    [polygonAmoy.id]: http(rpcUrls.polygonAmoy),
   },
 });
