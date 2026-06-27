@@ -42,15 +42,11 @@ REACT_APP_TERAID_PAY_API=http://localhost:8005
 
 REACT_APP_WALLET_CONNECT_PROJECT_ID=your_wallet_connect_project_id
 
-REACT_APP_RPC_URL_ETHEREUM_MAINNET=https://ethereum-rpc.publicnode.com
 REACT_APP_RPC_URL_ETHEREUM_SEPOLIA=https://ethereum-sepolia-rpc.publicnode.com
-REACT_APP_RPC_URL_POLYGON_MAINNET=https://polygon-bor-rpc.publicnode.com
-REACT_APP_RPC_URL_POLYGON_AMOY=https://polygon-amoy-bor-rpc.publicnode.com
+REACT_APP_RPC_URL_AVALANCHE_FUJI=https://avalanche-fuji-c-chain-rpc.publicnode.com
+REACT_APP_RPC_URL_POLYGON_AMOY=https://rpc-amoy.polygon.technology
 
-REACT_APP_JPYC_TOKEN_ADDRESS_ETHEREUM_MAINNET=
-REACT_APP_JPYC_TOKEN_ADDRESS_ETHEREUM_SEPOLIA=0xE7C3D8C9a439feDe00D2600032D5dB0Be71C3c29
-REACT_APP_JPYC_TOKEN_ADDRESS_POLYGON_MAINNET=
-REACT_APP_JPYC_TOKEN_ADDRESS_POLYGON_AMOY=
+REACT_APP_JPYC_TOKEN_ADDRESS=0xE7C3D8C9a439feDe00D2600032D5dB0Be71C3c29
 ```
 
 `REACT_APP_TERAID_PAY_API` は Pay API のベース URL です。未設定の場合はアプリ側で `http://localhost:8005` を使います。

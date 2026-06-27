@@ -1,13 +1,13 @@
 import { Alert, Backdrop, CircularProgress } from "@mui/material";
-import { waitForTransactionReceipt } from "@wagmi/core";
+import { readContract } from "@wagmi/core";
 import { useEffect, useState } from "react";
-import { erc20Abi, isAddress, maxUint256 } from "viem";
+import { isAddress, maxUint256, parseSignature } from "viem";
 import {
   useAccount,
   useDisconnect,
   useSignMessage,
+  useSignTypedData,
   useSwitchChain,
-  useWriteContract,
 } from "wagmi";
 
 import AppSnackbar from "../components/AppSnackbar";
@@ -29,11 +29,38 @@ import WalletRegisterDialog from "../WalletRegisterDialog";
 import { wagmiConfig } from "../wagmiConfig";
 import { findWalletNetworkOption } from "../walletNetworks";
 
+const permitTokenAbi = [
+  {
+    type: "function",
+    name: "name",
+    stateMutability: "view",
+    inputs: [],
+    outputs: [{ type: "string" }],
+  },
+  {
+    type: "function",
+    name: "nonces",
+    stateMutability: "view",
+    inputs: [{ name: "owner", type: "address" }],
+    outputs: [{ type: "uint256" }],
+  },
+];
+
+const permitTypes = {
+  Permit: [
+    { name: "owner", type: "address" },
+    { name: "spender", type: "address" },
+    { name: "value", type: "uint256" },
+    { name: "nonce", type: "uint256" },
+    { name: "deadline", type: "uint256" },
+  ],
+};
+
 export default function WalletPage({ onNavigate }) {
   const { address: connectedAddress, chainId: connectedChainId } = useAccount();
   const { signMessageAsync } = useSignMessage();
+  const { signTypedDataAsync } = useSignTypedData();
   const { switchChainAsync } = useSwitchChain();
-  const { writeContractAsync } = useWriteContract();
   const { disconnect } = useDisconnect();
 
   const [chainType, setChainType] = useState(DEFAULT_WALLET_NETWORK.chainType);
@@ -111,7 +138,7 @@ export default function WalletPage({ onNavigate }) {
     return approval;
   };
 
-  const writeWalletApprovalAmount = async (approval, amount) => {
+  const createWalletApprovalPermit = async (approval, amount) => {
     if (!connectedAddress) {
       throw new Error("ウォレットを接続してください。");
     }
@@ -124,24 +151,56 @@ export default function WalletPage({ onNavigate }) {
       await switchChainAsync({ chainId: approval.chain_id });
     }
 
-    const hash = await writeContractAsync({
-      address: approval.token_contract_address,
-      abi: erc20Abi,
-      functionName: "approve",
-      args: [approval.spender_address, amount],
-      chainId: approval.chain_id,
+    const [tokenName, nonce] = await Promise.all([
+      readContract(wagmiConfig, {
+        address: approval.token_contract_address,
+        abi: permitTokenAbi,
+        functionName: "name",
+        chainId: approval.chain_id,
+      }),
+      readContract(wagmiConfig, {
+        address: approval.token_contract_address,
+        abi: permitTokenAbi,
+        functionName: "nonces",
+        args: [connectedAddress],
+        chainId: approval.chain_id,
+      }),
+    ]);
+
+    const signatureDeadlineDate = new Date();
+    signatureDeadlineDate.setFullYear(signatureDeadlineDate.getFullYear() + 5);
+    const deadline = Math.floor(signatureDeadlineDate.getTime() / 1000);
+    const signature = await signTypedDataAsync({
+      domain: {
+        name: tokenName,
+        version: "1",
+        chainId: approval.chain_id,
+        verifyingContract: approval.token_contract_address,
+      },
+      types: permitTypes,
+      primaryType: "Permit",
+      message: {
+        owner: connectedAddress,
+        spender: approval.spender_address,
+        value: amount,
+        nonce,
+        deadline,
+      },
     });
 
-    const receipt = await waitForTransactionReceipt(wagmiConfig, {
-      hash,
-      chainId: approval.chain_id,
-    });
+    const parsedSignature = parseSignature(signature);
+    const recoveryId =
+      parsedSignature.v !== undefined
+        ? Number(parsedSignature.v)
+        : 27 + Number(parsedSignature.yParity || 0);
 
-    if (receipt.status !== "success") {
-      throw new Error("承認トランザクションが失敗しました。");
-    }
-
-    return hash;
+    return {
+      allowanceValue: amount,
+      signatureDeadline: deadline,
+      signatureRecoveryId: recoveryId,
+      signatureFirst32Bytes: parsedSignature.r,
+      signatureSecond32Bytes: parsedSignature.s,
+    };
   };
 
   const handleRegisterWallet = async () => {
@@ -191,14 +250,7 @@ export default function WalletPage({ onNavigate }) {
 
     try {
       setIsDeleting(true);
-
-      if (currentWallet.is_approval) {
-        const approval = await loadWalletApproval();
-        await writeWalletApprovalAmount(approval, 0n);
-      }
-
       await deleteWallet(currentWallet.wallet_id);
-
       setCurrentWallet(null);
       showToast("success", "ウォレットを削除しました。");
       setIsDeleteDialogOpen(false);
@@ -226,9 +278,9 @@ export default function WalletPage({ onNavigate }) {
       setIsApproving(true);
 
       const approval = await loadWalletApproval();
-      const approvalTxHash = await writeWalletApprovalAmount(approval, maxUint256);
+      const permitSignature = await createWalletApprovalPermit(approval, maxUint256);
 
-      await markWalletApproved(currentWallet.wallet_id, approvalTxHash);
+      await markWalletApproved(currentWallet.wallet_id, permitSignature);
 
       showToast("success", "ウォレットを承認しました。");
       await loadWallet();
