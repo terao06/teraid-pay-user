@@ -15,7 +15,7 @@ export default function WalletPageHeader({
     <Stack direction={{ xs: "column", md: "row" }} spacing={2} className="wallet-header">
       <Box>
         <Typography variant="h4" sx={{ fontWeight: 800 }}>
-          ウォレット詳細
+          利用者側ウォレット詳細
         </Typography>
         <Typography variant="body2" color="text.secondary">
           User ID {userId}
