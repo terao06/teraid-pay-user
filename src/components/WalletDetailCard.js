@@ -10,7 +10,7 @@ export default function WalletDetailCard({
   balanceText,
   actionDisabled,
   isLoadingWallet,
-  isApproving,
+  isPermitting,
   onRefreshWallet,
   onApproveWallet,
 }) {
@@ -34,7 +34,7 @@ export default function WalletDetailCard({
         </Tooltip>
       </Stack>
       <Divider />
-      {!wallet.is_approval ? (
+      {!wallet.is_permitted ? (
         <>
           <Alert severity="warning" sx={{ my: 2 }}>
             このウォレットは未承認です。利用するには承認を行ってください。
@@ -75,17 +75,17 @@ export default function WalletDetailCard({
       />
       <Divider />
       <DetailRow
-        label="Approval"
+        label="Permit"
         value={
           <Stack direction={{ xs: "column", sm: "row" }} spacing={1} sx={{ alignItems: { xs: "flex-start", sm: "center" } }}>
             <Chip
               size="small"
-              label={wallet.is_approval ? "承認済み" : "未承認"}
-              color={wallet.is_approval ? "success" : "warning"}
+              label={wallet.is_permitted ? "許可済み" : "未許可"}
+              color={wallet.is_permitted ? "success" : "warning"}
             />
-            {!wallet.is_approval ? (
+            {!wallet.is_permitted ? (
               <Button onClick={onApproveWallet} variant="contained" size="small" disabled={actionDisabled}>
-                {isApproving ? "承認中..." : "承認"}
+                {isPermitting ? "許可中..." : "許可"}
               </Button>
             ) : null}
           </Stack>

@@ -26,8 +26,8 @@ export async function fetchWallet() {
   return responseJson.data;
 }
 
-export async function fetchWalletApproval() {
-  const responseJson = await requestJson(`/user/${USER_ID}/wallet/approval`);
+export async function fetchWalletPermit() {
+  const responseJson = await requestJson(`/user/${USER_ID}/wallet/permit`);
 
   if (!responseJson || responseJson.status !== "success") {
     throw new Error("承認情報の取得に失敗しました。");
@@ -81,8 +81,8 @@ export async function deleteWallet(walletId) {
   });
 }
 
-export async function markWalletApproved(walletId, permitSignature) {
-  const responseJson = await requestJson(`/user/${USER_ID}/wallet/${walletId}/approval`, {
+export async function updateWalletPermit(walletId, permitSignature) {
+  const responseJson = await requestJson(`/user/${USER_ID}/wallet/${walletId}/permit`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: stringifyJsonBody({

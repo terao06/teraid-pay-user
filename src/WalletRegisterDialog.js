@@ -27,7 +27,7 @@ export default function WalletRegisterDialog({
   onNetworkNameChange,
   onRegisterWallet,
 }) {
-  const { address, chain, isConnected } = useAccount();
+  const { address, isConnected } = useAccount();
   const { connectors, connect, isPending } = useConnect();
   const { disconnect } = useDisconnect();
   const connector = connectors[0];
@@ -62,7 +62,7 @@ export default function WalletRegisterDialog({
                 wordBreak: "break-all",
               }}
             >
-              {isConnected ? `${address}${chain ? ` / ${chain.name}` : ""}` : "未接続"}
+              {isConnected ? address : "未接続"}
             </Typography>
           </Stack>
           <FormControl fullWidth size="small">

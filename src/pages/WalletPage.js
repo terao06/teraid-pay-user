@@ -18,9 +18,9 @@ import { DEFAULT_WALLET_NETWORK, USER_ID } from "../config/appConfig";
 import {
   deleteWallet,
   fetchWallet,
-  fetchWalletApproval,
+  fetchWalletPermit,
   issueWalletNonce,
-  markWalletApproved,
+  updateWalletPermit,
   registerWallet,
 } from "../clients/walletClient";
 import { useWalletBalance } from "../hooks/useWalletBalance";
@@ -72,7 +72,7 @@ export default function WalletPage({ onNavigate }) {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isRegistering, setIsRegistering] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
-  const [isApproving, setIsApproving] = useState(false);
+  const [isPermitting, setIsPermitting] = useState(false);
   const [toastState, setToastState] = useState({
     open: false,
     severity: "success",
@@ -81,7 +81,7 @@ export default function WalletPage({ onNavigate }) {
 
   const { balanceText, refetchBalance } = useWalletBalance(currentWallet);
 
-  const actionDisabled = isRegistering || isDeleting || isRefreshing || isApproving;
+  const actionDisabled = isRegistering || isDeleting || isRefreshing || isPermitting;
   const isBusy = isLoadingWallet || actionDisabled;
 
   const showToast = (severity, message) => {
@@ -125,45 +125,45 @@ export default function WalletPage({ onNavigate }) {
     if (!isRegistering) setIsDialogOpen(false);
   };
 
-  const loadWalletApproval = async () => {
-    const approval = await fetchWalletApproval();
+  const loadWalletPermit = async () => {
+    const permit = await fetchWalletPermit();
     if (
-      !isAddress(approval.wallet_address) ||
-      !isAddress(approval.token_contract_address) ||
-      !isAddress(approval.spender_address)
+      !isAddress(permit.wallet_address) ||
+      !isAddress(permit.token_contract_address) ||
+      !isAddress(permit.spender_address)
     ) {
       throw new Error("承認情報のアドレス形式が不正です。");
     }
 
-    return approval;
+    return permit;
   };
 
-  const createWalletApprovalPermit = async (approval, amount) => {
+  const createWalletPermitSignature = async (permit, amount) => {
     if (!connectedAddress) {
       throw new Error("ウォレットを接続してください。");
     }
 
-    if (approval.wallet_address.toLowerCase() !== connectedAddress.toLowerCase()) {
+    if (permit.wallet_address.toLowerCase() !== connectedAddress.toLowerCase()) {
       throw new Error("登録済みのウォレットアドレスで接続してください。");
     }
 
-    if (connectedChainId !== approval.chain_id) {
-      await switchChainAsync({ chainId: approval.chain_id });
+    if (connectedChainId !== permit.chain_id) {
+      await switchChainAsync({ chainId: permit.chain_id });
     }
 
     const [tokenName, nonce] = await Promise.all([
       readContract(wagmiConfig, {
-        address: approval.token_contract_address,
+        address: permit.token_contract_address,
         abi: permitTokenAbi,
         functionName: "name",
-        chainId: approval.chain_id,
+        chainId: permit.chain_id,
       }),
       readContract(wagmiConfig, {
-        address: approval.token_contract_address,
+        address: permit.token_contract_address,
         abi: permitTokenAbi,
         functionName: "nonces",
         args: [connectedAddress],
-        chainId: approval.chain_id,
+        chainId: permit.chain_id,
       }),
     ]);
 
@@ -174,14 +174,14 @@ export default function WalletPage({ onNavigate }) {
       domain: {
         name: tokenName,
         version: "1",
-        chainId: approval.chain_id,
-        verifyingContract: approval.token_contract_address,
+        chainId: permit.chain_id,
+        verifyingContract: permit.token_contract_address,
       },
       types: permitTypes,
       primaryType: "Permit",
       message: {
         owner: connectedAddress,
-        spender: approval.spender_address,
+        spender: permit.spender_address,
         value: amount,
         nonce,
         deadline,
@@ -275,19 +275,19 @@ export default function WalletPage({ onNavigate }) {
     }
 
     try {
-      setIsApproving(true);
+      setIsPermitting(true);
 
-      const approval = await loadWalletApproval();
-      const permitSignature = await createWalletApprovalPermit(approval, maxUint256);
+      const permit = await loadWalletPermit();
+      const permitSignature = await createWalletPermitSignature(permit, maxUint256);
 
-      await markWalletApproved(currentWallet.wallet_id, permitSignature);
+      await updateWalletPermit(currentWallet.wallet_id, permitSignature);
 
       showToast("success", "ウォレットを承認しました。");
       await loadWallet();
     } catch (error) {
       showToast("error", getJapaneseErrorMessage(error, "ウォレット承認に失敗しました。"));
     } finally {
-      setIsApproving(false);
+      setIsPermitting(false);
     }
   };
 
@@ -319,7 +319,7 @@ export default function WalletPage({ onNavigate }) {
           balanceText={balanceText}
           actionDisabled={actionDisabled}
           isLoadingWallet={isLoadingWallet}
-          isApproving={isApproving}
+          isPermitting={isPermitting}
           onRefreshWallet={refreshWallet}
           onApproveWallet={handleApproveWallet}
         />
